@@ -1,0 +1,80 @@
+# compiled output
+/dist
+/node_modules
+/build
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# OS
+.DS_Store
+
+# Tests
+/coverage
+/.nyc_output
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Environment
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+.env*.local
+.envrc
+
+# 예시 파일은 Git에 포함
+!.env.example
+
+
+# Memo
+.memo.txt
+.memo
+
+
+# ==========================================
+# 임시 디렉토리
+# ==========================================
+.temp
+.tmp
+
+# ==========================================
+# Node.js 진단 리포트
+# ==========================================
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+
+# ==========================================
+# Prisma 관련 (추가)
+# ==========================================
+/prisma/.env
+/prisma/migrations/*_tmp_*        # 임시 마이그레이션만 제외
+/node_modules/.prisma/
+/node_modules/@prisma/client/
+
+
+# ==========================================
+# Cursor 에디터
+# ==========================================
+.cursor/
+.cursor/environment.json
+.cursorignore

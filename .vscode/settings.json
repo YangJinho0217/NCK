@@ -1,0 +1,15 @@
+{
+  "prisma.pinToPrisma6": false,
+  "prisma.schema": "${workspaceFolder}/prisma/schema/base.prisma",
+  "[prisma]": {
+    "editor.quickSuggestions": {
+      "comments": "off",
+      "strings": "on",
+      "other": "on"
+    }
+  },
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": false,
+  "editor.formatOnSave": true
+}
