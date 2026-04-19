@@ -1,0 +1,31 @@
+model Player {
+  id Int @id @default(autoincrement()) 
+  loginId String @db.VarChar(100) @map("login_id") // 로그인 아이디
+  nickName String @db.VarChar(100) @map("nick_name") // 닉네임
+  password String @db.VarChar(100) @map("password") // 비밀번호
+  isActive Boolean @default(true) @map("is_active") // 활성화 여부
+  deletedAt DateTime? @map("deleted_at") // 삭제 일시
+  createdAt DateTime @default(now()) @map("created_at") // 생성 일시
+  updatedAt DateTime @updatedAt @map("updated_at") // 수정 일시
+
+  @@index([loginId])
+  @@map("player")
+}
+
+model PlayerSetting {
+  id Int @id @default(autoincrement())
+  playerId Int @map("player_id") // 플레이어 아이디
+  leagueId String? @db.VarChar(100) @map("league_id") // 리그 아이디
+  tier String? @db.VarChar(20) @map("tier") // 티어 
+  rank String? @db.VarChar(10) @map("rank") // 랭크
+  puuid String? @db.VarChar(300) @map("puuid") // 플레이어 고유 아이디
+  totalPlayGame Int @default(0) @map("total_play_game") // 총 플레이 게임 수
+  likedPosition Json @default("{\"top\": false, \"jungle\": false, \"mid\": false, \"adc\": false, \"support\": false, \"allround\": false}") @map("liked_position") // 좋아하는 포지션
+  unlikedPosition Json @default("{\"top\": false, \"jungle\": false, \"mid\": false, \"adc\": false, \"support\": false, \"allround\": false}") @map("unliked_position") // 싫어하는 포지션
+  deletedAt DateTime? @map("deleted_at") // 삭제 일시
+  createdAt DateTime @default(now()) @map("created_at") // 생성 일시
+  updatedAt DateTime @updatedAt @map("updated_at") // 수정 일시
+
+  @@index([playerId])
+  @@map("player_setting")
+}

@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { PrismaService } from '@src/core/prisma/prisma.service';
 import { SetRoomSettingRequestDto } from './dto/set-room-setting/request.dto';
+import { CustomException } from '@src/common/exception/exceptions';
 
 @Injectable()
 export class RoomSettingService {
@@ -16,7 +17,8 @@ export class RoomSettingService {
         throw new BadRequestException('이미 존재하는 방 이름입니다.');
       }
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      if (error instanceof CustomException) throw error;
+      throw new CustomException('common.errorMessage', 'INTERNAL_SERVER_ERROR');
     }
   }
 
@@ -30,7 +32,8 @@ export class RoomSettingService {
       });
       return "set room success"
     } catch (error) {
-      throw new InternalServerErrorException(error.message);
+      if (error instanceof CustomException) throw error;
+      throw new CustomException('common.errorMessage', 'INTERNAL_SERVER_ERROR');
     }
   }
 }

@@ -1,10 +1,23 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { Reflector } from '@nestjs/core';
+import { SwaggerModule } from '@nestjs/swagger';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
+import { SuccessResponseInterceptor } from './common/interceptors/success-response.interceptor';
+import {
+  applyGlobalErrorResponses,
+  applySwaggerTagGroups,
+  buildOpenApiDocumentForGroup,
+  swaggerConfig,
+  swaggerGroupedJsonSlug,
+  SWAGGER_GROUPED_OPEN_API,
+} from './common/swagger/swagger.config';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.useGlobalInterceptors(new SuccessResponseInterceptor(app.get(Reflector)));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -16,21 +29,30 @@ async function bootstrap() {
 
   app.enableCors();
 
-  if (process.env.NODE_ENV !== 'production') {
-    const swaggerConfig = new DocumentBuilder()
-      .setTitle('Hospital CRM API')
-      .setDescription('API 문서')
-      .setVersion('1.0')
-      .build();
+  app.use(cookieParser());
 
+  if (process.env.NODE_ENV !== 'production') {
     const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api-docs', app, document, {
+    applyGlobalErrorResponses(document);
+    applySwaggerTagGroups(document);
+
+    const swaggerUiOptions = {
       swaggerOptions: {
         persistAuthorization: true,
-        docExpansion: 'list',
+        docExpansion: 'list' as const,
         filter: true,
       },
-    });
+    };
+
+    SwaggerModule.setup('api-docs', app, document, swaggerUiOptions);
+
+    for (const cfg of SWAGGER_GROUPED_OPEN_API) {
+      const slug = swaggerGroupedJsonSlug(cfg.group);
+      const groupDoc = buildOpenApiDocumentForGroup(document, cfg);
+      applyGlobalErrorResponses(groupDoc);
+      applySwaggerTagGroups(groupDoc);
+      SwaggerModule.setup(`api-docs/${slug}`, app, groupDoc, swaggerUiOptions);
+    }
   }
 
   const port = process.env.PORT || 3000;
@@ -40,6 +62,10 @@ async function bootstrap() {
   console.log(`Server: http://localhost:${port}`);
   if (process.env.NODE_ENV !== 'production') {
     console.log(`Swagger: http://localhost:${port}/api-docs`);
+    for (const cfg of SWAGGER_GROUPED_OPEN_API) {
+      const slug = swaggerGroupedJsonSlug(cfg.group);
+      console.log(`Swagger (${cfg.group}): http://localhost:${port}/api-docs/${slug}`);
+    }
   }
 }
 
