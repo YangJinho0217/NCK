@@ -9,7 +9,7 @@ import {
   TryLoginPlayerReqDto,
 } from './dto/set-player-setting/request.dto';
 import { CustomException } from '@src/common/exception/exceptions';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 
 /** bcrypt cost factor (10 ≈ ~100ms per hash on typical server CPU) */
 const BCRYPT_SALT_ROUNDS = 10;
@@ -29,7 +29,6 @@ export class PlayerSettingService {
       where: { loginId, deletedAt: null },
     });
     if (existing) {
-      // throw new ConflictException('이미 존재하는 플레이어입니다.');
       throw new CustomException('player.duplicate', 'BAD_REQUEST', { field: 'loginId', fieldMessage: 'player.duplicate' });
     }
   }
@@ -61,7 +60,7 @@ export class PlayerSettingService {
         },
       });
 
-      return 'set player success'
+      return 'set player success';
     } catch (error) {
       if (error instanceof CustomException) throw error;
       throw new CustomException('common.errorMessage', 'INTERNAL_SERVER_ERROR');
@@ -110,47 +109,66 @@ export class PlayerSettingService {
     }
   }
 
-  /** `accessToken` JWT 서명 검증 후 페이로드의 플레이어 id(`sub`) */
-  async getPlayerIdFromAccessToken(accessToken: string | undefined, dto: SetPlayerRiotReqDto) {
-    if (accessToken == null || accessToken === '') {
-      throw new CustomException('player.tokenInvalid', 'UNAUTHORIZED');
+  private handleRiotApiError(error: AxiosError): never {
+    const status = error.response?.status;
+
+    switch (status) {
+      case 400:
+        throw new CustomException('player.riotNotFound', 'BAD_REQUEST', {
+          field: 'nickname',
+          fieldMessage: 'player.riotNotFound',
+        });
+      case 401:
+      case 403:
+        throw new CustomException('player.riotApiKeyInvalid', 'INTERNAL_SERVER_ERROR');
+      case 404:
+        throw new CustomException('player.riotNotFound', 'NOT_FOUND', {
+          field: 'nickname',
+          fieldMessage: 'player.riotNotFound',
+        });
+      case 429:
+        throw new CustomException('player.riotRateLimit', 'TOO_MANY_REQUESTS');
+      default:
+        throw new CustomException('player.riotServerError', 'INTERNAL_SERVER_ERROR');
     }
+  }
+
+  async linkPlayerRiotAccount(playerId: number, dto: SetPlayerRiotReqDto) {
     try {
-      const payload = await this.jwtService.verifyAsync<{
-        sub: string | number;
-        typ?: string;
-        kind?: string;
-      }>(accessToken);
-      if (payload.typ !== 'player' || payload.kind !== 'access') {
-        throw new CustomException('player.tokenInvalid', 'UNAUTHORIZED');
-      }
-      const playerId = Number(payload.sub);
-      if (!Number.isInteger(playerId) || playerId < 1) {
-        throw new CustomException('player.tokenInvalid', 'UNAUTHORIZED');
+      const riotHeaders = { 'X-Riot-Token': process.env.RIOT_API_KEY };
+
+      let accountRes;
+      try {
+        accountRes = await axios.get(
+          `https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${encodeURIComponent(dto.nickname)}/${encodeURIComponent(dto.tag)}`,
+          { headers: riotHeaders },
+        );
+      } catch (error) {
+        if (error instanceof AxiosError) this.handleRiotApiError(error);
+        throw error;
       }
 
-      const player = await axios.get(`https://asia.api.riotgames.com/riot/account/v1/accounts/by-riot-id/${dto.nickname}/${dto.tag}`, {
-        headers: {
-          'X-Riot-Token': process.env.RIOT_API_KEY
-        }
-      });
-
-      if (!player.data?.puuid) {
+      if (!accountRes.data?.puuid) {
         throw new CustomException('player.riotNotFound', 'NOT_FOUND', {
           field: 'nickname',
           fieldMessage: 'player.riotNotFound',
         });
       }
 
-      const playerUuid = player.data.puuid;
-      // 6QdwLqcNlXFiKPZ-69bKrA-UD5gcM7LuDfkWajwZu5JBYgWc3BbiLGRxp4xOC7s3tHSxvHi7FVcMCg == trial uuid
-      const playerData = await axios.get(`https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${playerUuid}`, {
-        headers: {
-          'X-Riot-Token': process.env.RIOT_API_KEY
-        }
-      });
+      const playerUuid: string = accountRes.data.puuid;
 
-      const firstLeagueEntry = playerData.data?.[0];
+      let leagueRes;
+      try {
+        leagueRes = await axios.get(
+          `https://kr.api.riotgames.com/lol/league/v4/entries/by-puuid/${playerUuid}`,
+          { headers: riotHeaders },
+        );
+      } catch (error) {
+        if (error instanceof AxiosError) this.handleRiotApiError(error);
+        throw error;
+      }
+
+      const firstLeagueEntry = leagueRes.data?.[0];
       const linkedPuuid = firstLeagueEntry?.puuid ?? playerUuid;
       const totalPlayGameCount =
         (firstLeagueEntry?.wins ?? 0) + (firstLeagueEntry?.losses ?? 0);
@@ -177,12 +195,30 @@ export class PlayerSettingService {
         },
       });
 
-      return "set player Riot Data";
-
+      return 'set player Riot Data';
     } catch (error) {
       if (error instanceof CustomException) throw error;
       throw new CustomException('common.errorMessage', 'INTERNAL_SERVER_ERROR');
     }
   }
 
+  async getPlayerCheckConnect(playerId: number) {
+    try {
+      const connect = await this.prisma.playerSetting.findFirst({
+        where: { playerId, deletedAt: null },
+      });
+
+      if (connect) {
+        throw new CustomException('player.alreadyConnected', 'CONFLICT', {
+          field: 'playerId',
+          fieldMessage: 'player.alreadyConnected',
+        });
+      }
+
+      return 'not connected';
+    } catch (error) {
+      if (error instanceof CustomException) throw error;
+      throw new CustomException('common.errorMessage', 'INTERNAL_SERVER_ERROR');
+    }
+  }
 }

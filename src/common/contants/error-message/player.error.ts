@@ -14,4 +14,16 @@ export const PLAYER_ERROR_MESSAGE = {
   'player.riotAlreadyLinked': {
     ko: '이미 서비스에 연동된 라이엇 계정입니다.',
   },
+  'player.alreadyConnected': {
+    ko: '이미 계정이 연동되어 있습니다.',
+  },
+  'player.riotApiKeyInvalid': {
+    ko: '라이엇 API 키가 만료되었거나 유효하지 않습니다.',
+  },
+  'player.riotRateLimit': {
+    ko: '라이엇 API 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.',
+  },
+  'player.riotServerError': {
+    ko: '라이엇 서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+  },
 };

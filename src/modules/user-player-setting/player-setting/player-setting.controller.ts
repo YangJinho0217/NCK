@@ -1,7 +1,8 @@
-import { Body, Controller, Post, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { ApiOperation } from '@nestjs/swagger';
 import { ApiCommonResponse } from '@src/common/dto/common.dto';
-import type { Request, Response } from 'express';
+import type { Response } from 'express';
+import { Res } from '@nestjs/common';
 import {
   SetPlayerRiotReqDto,
   SetPlayerSettingReqDto,
@@ -12,16 +13,11 @@ import {
   TryLoginPlayerDataDto,
 } from './dto/set-player-setting/response.dto';
 import { PlayerSettingService } from './player-setting.service';
+import { JwtAuthGuard, CurrentPlayer } from '@src/common/auth';
 
-@Controller('player-setting')
+@Controller('/api/v1/player-setting')
 export class PlayerSettingController {
-  constructor(private readonly playerSettingService: PlayerSettingService) { }
-
-  // @Get('/')
-  // @ApiOperation({ summary: '플레이어 설정 조회' })
-  // async getPlayer(@Query() dto: GetPlayerSettingQueryDto) {
-  //   return this.playerSettingService.getPlayer(dto);
-  // }
+  constructor(private readonly playerSettingService: PlayerSettingService) {}
 
   @Post('/signUp')
   @ApiOperation({ summary: '회원가입' })
@@ -52,17 +48,25 @@ export class PlayerSettingController {
     res.cookie('accessToken', result.accessToken, {
       ...cookieBase,
     });
-    // res.cookie('refreshToken', result.refreshToken, {
-    //   ...cookieBase,
-    //   maxAge: 24 * 60 * 60 * 1000,
-    // });
     return "login success";
   }
 
+  @Get('/player')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: '유저 계정 연동 확인' })
+  @ApiCommonResponse(String, { isArray: false, status: 200, example: 'get success' })
+  async getPlayerCheckConnect(@CurrentPlayer('id') playerId: number) {
+    return this.playerSettingService.getPlayerCheckConnect(playerId);
+  }
+
   @Post('/set-player')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: '유저 계정 연동' })
   @ApiCommonResponse(PlayerIdFromCookieDataDto, { isArray: false, status: 200 })
-  async linkPlayerFromCookie(@Req() req: Request, @Body() dto: SetPlayerRiotReqDto) {
-    return await this.playerSettingService.getPlayerIdFromAccessToken(req.cookies?.accessToken, dto);
+  async linkPlayerFromCookie(
+    @CurrentPlayer('id') playerId: number,
+    @Body() dto: SetPlayerRiotReqDto,
+  ) {
+    return this.playerSettingService.linkPlayerRiotAccount(playerId, dto);
   }
 }
