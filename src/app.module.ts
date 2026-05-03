@@ -7,7 +7,7 @@ import { HelpersModule } from './core/helpers/helpers.module';
 import { ActionLogModule } from './core/log/action-log.module';
 import { UserRoomSettingModule } from './modules/user-room-setting/user-room-setting.module';
 import { UserPlayerSettingModule } from './modules/user-player-setting/user-player-setting.module';
-
+import { UserPlayersModule } from './modules/user-players/user-players.module';
 // 환경별 .env 파일 결정
 const nodeEnv = process.env.NODE_ENV || 'development';
 const envFilePath = `.env.${nodeEnv}`;
@@ -39,6 +39,7 @@ const envFilePath = `.env.${nodeEnv}`;
     ActionLogModule,
     UserRoomSettingModule,
     UserPlayerSettingModule,
+    UserPlayersModule
   ]
 })
 export class AppModule { }

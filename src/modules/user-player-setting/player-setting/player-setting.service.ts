@@ -147,7 +147,6 @@ export class PlayerSettingService {
         if (error instanceof AxiosError) this.handleRiotApiError(error);
         throw error;
       }
-
       if (!accountRes.data?.puuid) {
         throw new CustomException('player.riotNotFound', 'NOT_FOUND', {
           field: 'nickname',
@@ -188,6 +187,8 @@ export class PlayerSettingService {
         data: {
           playerId: playerId,
           leagueId: firstLeagueEntry?.leagueId ?? null,
+          gameNickName: dto.nickname,
+          gameTag: dto.tag,
           tier: firstLeagueEntry?.tier ?? null,
           rank: firstLeagueEntry?.rank ?? null,
           puuid: linkedPuuid,
